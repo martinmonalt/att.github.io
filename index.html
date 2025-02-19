@@ -1,0 +1,267 @@
+import React, { useState } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Select } from "@/components/ui/select";
+
+const FitnessAdvisor = () => {
+  const [step, setStep] = useState(1);
+  const [userData, setUserData] = useState({
+    edad: '',
+    peso: '',
+    altura: '',
+    genero: '',
+    deporte: '',
+    objetivo: '',
+    nivelActividad: '',
+    horasSueno: '',
+    restricciones: ''
+  });
+  const [showRecommendations, setShowRecommendations] = useState(false);
+
+  const calcularCalorias = () => {
+    // Fórmula Mifflin-St Jeor
+    let TMB = 0;
+    if (userData.genero === 'masculino') {
+      TMB = (10 * userData.peso) + (6.25 * userData.altura) - (5 * userData.edad) + 5;
+    } else {
+      TMB = (10 * userData.peso) + (6.25 * userData.altura) - (5 * userData.edad) - 161;
+    }
+
+    // Ajuste por nivel de actividad
+    const factoresActividad = {
+      sedentario: 1.2,
+      ligero: 1.375,
+      moderado: 1.55,
+      activo: 1.725,
+      muyActivo: 1.9
+    };
+
+    return Math.round(TMB * factoresActividad[userData.nivelActividad]);
+  };
+
+  const generarRecomendaciones = () => {
+    const caloriasBase = calcularCalorias();
+    let recomendaciones = {
+      calorias: caloriasBase,
+      macros: {},
+      entrenamiento: {},
+      sueno: '',
+      alimentacion: [],
+      ejercicios: []
+    };
+
+    // Ajuste de calorías según objetivo
+    if (userData.objetivo === 'perdida' && parseInt(userData.edad) < 18) {
+      recomendaciones.calorias -= 100; // Déficit moderado para menores
+    } else if (userData.objetivo === 'perdida') {
+      recomendaciones.calorias -= 500;
+    } else if (userData.objetivo === 'ganancia') {
+      recomendaciones.calorias += 300;
+    }
+
+    // Macros personalizados
+    recomendaciones.macros = {
+      proteina: Math.round(userData.peso * (userData.objetivo === 'ganancia' ? 2.2 : 2)),
+      carbohidratos: Math.round((recomendaciones.calorias * 0.45) / 4),
+      grasas: Math.round((recomendaciones.calorias * 0.25) / 9)
+    };
+
+    // Recomendaciones de sueño
+    if (parseInt(userData.edad) < 18) {
+      recomendaciones.sueno = '8-10 horas';
+    } else {
+      recomendaciones.sueno = '7-9 horas';
+    }
+
+    // Entrenamiento personalizado
+    const entrenamientos = {
+      perdida: {
+        cardio: '30-45 minutos, 4-5 veces por semana',
+        pesas: '4 sesiones por semana, enfoque en circuitos'
+      },
+      ganancia: {
+        cardio: '20 minutos, 2-3 veces por semana',
+        pesas: '5 sesiones por semana, enfoque en hipertrofia'
+      },
+      mantenimiento: {
+        cardio: '25-30 minutos, 3-4 veces por semana',
+        pesas: '4 sesiones por semana, enfoque mixto'
+      }
+    };
+    recomendaciones.entrenamiento = entrenamientos[userData.objetivo];
+
+    return recomendaciones;
+  };
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    setShowRecommendations(true);
+  };
+
+  const recomendaciones = showRecommendations ? generarRecomendaciones() : null;
+
+  return (
+    <div className="max-w-4xl mx-auto p-4">
+      <Card className="bg-green-50">
+        <CardHeader className="bg-black text-white">
+          <CardTitle className="text-2xl text-center">Asesor Personal de Fitness</CardTitle>
+        </CardHeader>
+        <CardContent className="p-6">
+          {!showRecommendations ? (
+            <form onSubmit={handleSubmit} className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Edad</label>
+                  <Input
+                    type="number"
+                    required
+                    className="mt-1"
+                    value={userData.edad}
+                    onChange={(e) => setUserData({...userData, edad: e.target.value})}
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Peso (kg)</label>
+                  <Input
+                    type="number"
+                    required
+                    className="mt-1"
+                    value={userData.peso}
+                    onChange={(e) => setUserData({...userData, peso: e.target.value})}
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Altura (cm)</label>
+                  <Input
+                    type="number"
+                    required
+                    className="mt-1"
+                    value={userData.altura}
+                    onChange={(e) => setUserData({...userData, altura: e.target.value})}
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Género</label>
+                  <select
+                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm"
+                    value={userData.genero}
+                    onChange={(e) => setUserData({...userData, genero: e.target.value})}
+                    required
+                  >
+                    <option value="">Seleccionar</option>
+                    <option value="masculino">Masculino</option>
+                    <option value="femenino">Femenino</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Deporte</label>
+                  <Input
+                    type="text"
+                    required
+                    className="mt-1"
+                    value={userData.deporte}
+                    onChange={(e) => setUserData({...userData, deporte: e.target.value})}
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Objetivo</label>
+                  <select
+                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm"
+                    value={userData.objetivo}
+                    onChange={(e) => setUserData({...userData, objetivo: e.target.value})}
+                    required
+                  >
+                    <option value="">Seleccionar</option>
+                    <option value="perdida">Pérdida de grasa</option>
+                    <option value="ganancia">Ganancia muscular</option>
+                    <option value="mantenimiento">Mantenimiento</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Nivel de Actividad</label>
+                  <select
+                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm"
+                    value={userData.nivelActividad}
+                    onChange={(e) => setUserData({...userData, nivelActividad: e.target.value})}
+                    required
+                  >
+                    <option value="">Seleccionar</option>
+                    <option value="sedentario">Sedentario</option>
+                    <option value="ligero">Ligero</option>
+                    <option value="moderado">Moderado</option>
+                    <option value="activo">Activo</option>
+                    <option value="muyActivo">Muy activo</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Restricciones Alimenticias</label>
+                  <Input
+                    type="text"
+                    className="mt-1"
+                    value={userData.restricciones}
+                    onChange={(e) => setUserData({...userData, restricciones: e.target.value})}
+                  />
+                </div>
+              </div>
+              <div className="flex justify-center">
+                <Button 
+                  type="submit"
+                  className="bg-green-600 hover:bg-green-700 text-white"
+                >
+                  Generar Recomendaciones
+                </Button>
+              </div>
+            </form>
+          ) : (
+            <div className="space-y-6">
+              <div className="bg-white p-6 rounded-lg shadow">
+                <h3 className="text-xl font-bold text-green-800 mb-4">Recomendaciones Personalizadas</h3>
+                
+                <div className="space-y-4">
+                  <div>
+                    <h4 className="font-semibold text-green-700">Calorías Diarias</h4>
+                    <p>{recomendaciones.calorias} kcal</p>
+                  </div>
+                  
+                  <div>
+                    <h4 className="font-semibold text-green-700">Macronutrientes</h4>
+                    <ul className="list-disc pl-5">
+                      <li>Proteínas: {recomendaciones.macros.proteina}g</li>
+                      <li>Carbohidratos: {recomendaciones.macros.carbohidratos}g</li>
+                      <li>Grasas: {recomendaciones.macros.grasas}g</li>
+                    </ul>
+                  </div>
+                  
+                  <div>
+                    <h4 className="font-semibold text-green-700">Plan de Entrenamiento</h4>
+                    <ul className="list-disc pl-5">
+                      <li>Cardio: {recomendaciones.entrenamiento.cardio}</li>
+                      <li>Entrenamiento con pesas: {recomendaciones.entrenamiento.pesas}</li>
+                    </ul>
+                  </div>
+                  
+                  <div>
+                    <h4 className="font-semibold text-green-700">Sueño Recomendado</h4>
+                    <p>{recomendaciones.sueno}</p>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="flex justify-center">
+                <Button 
+                  onClick={() => setShowRecommendations(false)}
+                  className="bg-black hover:bg-gray-800 text-white"
+                >
+                  Volver al Formulario
+                </Button>
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  );
+};
+
+export default FitnessAdvisor;
